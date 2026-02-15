@@ -29,6 +29,4 @@ Our system centralizes athlete data, team scheduling, performance statistics, me
 
 ## Course Information
 CMS 375 – Database Design and Development  
-Spring 2026
-CMS 375 – Database Design and Development  
 Spring 2026  
