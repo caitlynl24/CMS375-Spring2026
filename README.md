@@ -13,16 +13,16 @@ Our system centralizes athlete data, team scheduling, performance statistics, me
 
 ## Team Members & Roles
 
-- **[Stella Fruijtier]** – Team Lead / Database Architect  
+- **Stella Fruijtier** – Team Lead / Database Architect  
   - Schema design
   - Primary & foreign keys
   - SQL queries
 
-- **[Sydney Eckstein]** – Backend Developer  
+- **Sydney Eckstein** – Backend Developer  
   - Database connection
   - Authentication & role management
 
-- **[Caitlyn Lefebve]** – Front-End Developer  
+- **Caitlyn Lefebve** – Front-End Developer  
   - User interface
   - Forms & dashboards
   - User experience design 
