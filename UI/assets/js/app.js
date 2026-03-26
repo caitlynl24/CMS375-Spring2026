@@ -1,42 +1,37 @@
 function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-    document.getElementById(pageId).classList.remove('hidden');
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('active');
+    });
 
-    document.querySelectorAll('.sidebar li').forEach(li => li.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+
+    document.querySelectorAll('.sidebar li').forEach(li => {
+        li.classList.remove('active');
+    });
+
     event.target.classList.add('active');
 }
 
-//Fake Data
-const schedule = [  
-    "Practice - 4:00 PM",
-    "Team Meeting - 6:00 PM"
-];
+// Role Switching (Athlete vs Coach)
+function switchRole(role) {
+    const role = document.getElementById("roleSelect").value;
+    const restriction = document.getElementById("coachRestriction");
 
-const announcements = [
-    "Game rescheduled to Friday",
-    "New workout plan available"
-];
+    if (role === "coach") {
+        restriction.classList.remove("hidden");
+    } else {
+        restriction.classList.add("hidden");
+    }
+}
 
-const messages = [
-    "Coach: Be early today",
-    "Trainer: Recovery session tomorrow"
-];
-
-// Load Dashboard Data
-schedule.forEach(item => {
-    document.getElementById("schedule-list").innerHTML += `<p>${item}</p>`;
-});
-
-announcements.forEach(item => {
-    document.getElementById("announcements").innerHTML += `<li>${item}</li>`;
-});
-
-messages.forEach(msg => {
-    document.getElementById("messages-preview").innerHTML += `<li>${msg}</li>`;
-});
-
-//Chat mock
+//Chat Mock
 const chat = document.getElementById("chat");
-["Hey team", "Practice at 4", "Don't be late"].forEach(msg => {
-    chat.innerHTML += `<p>${msg}</p>`;
+
+[
+    "Coach: Practice at 4PM",
+    "Athlete: Got it!",
+].forEach(msg => {
+    const p = document.createElement("p");
+    p.textContent = msg;
+    chat.appendChild(p);
 });
