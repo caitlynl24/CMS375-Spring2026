@@ -1,37 +1,58 @@
-function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => {
-        p.classList.remove('active');
-    });
+document.addEventListener("DOMContentLoaded", function () {
 
-    document.getElementById(pageId).classList.add('active');
+    function showPage(event, pageId) {
+        document.querySelectorAll('.page').forEach(p => {
+            p.classList.remove('active');
+        });
 
-    document.querySelectorAll('.sidebar li').forEach(li => {
-        li.classList.remove('active');
-    });
+        document.getElementById(pageId).classList.add('active');
 
-    event.target.classList.add('active');
-}
+        document.querySelectorAll('.sidebar li').forEach(li => {
+            li.classList.remove('active');
+        });
 
-// Role Switching (Athlete vs Coach)
-function switchRole(role) {
-    const role = document.getElementById("roleSelect").value;
-    const restriction = document.getElementById("coachRestriction");
-
-    if (role === "coach") {
-        restriction.classList.remove("hidden");
-    } else {
-        restriction.classList.add("hidden");
+        event.target.classList.add('active');
     }
-}
 
-//Chat Mock
-const chat = document.getElementById("chat");
+    function switchRole() {
+        const role = document.getElementById("roleSelect").value;
+        const restriction = document.getElementById("coachRestriction");
 
-[
-    "Coach: Practice at 4PM",
-    "Athlete: Got it!",
-].forEach(msg => {
-    const p = document.createElement("p");
-    p.textContent = msg;
-    chat.appendChild(p);
+        if (role === "coach") {
+            restriction.classList.remove("hidden");
+        } else {
+            restriction.classList.add("hidden");
+        }
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const chat = document.getElementById("chat");
+        const text = input.value.trim();
+
+        if (text === "") return;
+
+        const p = document.createElement("p");
+        p.textContent = "You: " + text;
+        chat.appendChild(p);
+
+        input.value = "";
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    // Expose functions
+    window.showPage = showPage;
+    window.switchRole = switchRole;
+    window.sendMessage = sendMessage;
+
+    // Initialize chat
+    const chat = document.getElementById("chat");
+    if (chat) {
+        ["Coach: Practice at 4PM", "Athlete: Got it!"].forEach(msg => {
+            const p = document.createElement("p");
+            p.textContent = msg;
+            chat.appendChild(p);
+        });
+    }
+
 });
