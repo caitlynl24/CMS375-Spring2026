@@ -46,7 +46,7 @@ $role = $_SESSION['role'];
             <h1>Rollins Athletics Dashboard</h1>
 
             <div class="user">
-                Welcome, <?php echo $_SESSION['name']; ?> (<?php echo $role; ?>)
+                Welcome, <?php echo $_SESSION['name']; ?>
                 |
                 <a href="logout.php">Logout</a>
             </div>
