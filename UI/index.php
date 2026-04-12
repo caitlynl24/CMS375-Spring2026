@@ -1,3 +1,14 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$role = $_SESSION['role'];
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,7 +44,12 @@
         <!-- Topbar -->
         <div class="topbar">
             <h1>Rollins Athletics Dashboard</h1>
-            <div class="user">Welcome, John Doe</div>
+
+            <div class="user">
+                Welcome, <?php echo $_SESSION['name']; ?>
+                |
+                <a href="logout.php">Logout</a>
+            </div>
         </div>
 
         <!-- Content -->
