@@ -4,7 +4,7 @@
     <title>Register</title>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
-<body>
+<body class="auth-body">
 
 <div class="login-container">
     <form class="login-card" method="POST" action="register_handler.php">
@@ -20,6 +20,10 @@
         </select>
 
         <button type="submit">Register</button>
+
+        <div class="auth-link">
+            Already have an account? <a href="login.php">Login</a>
+        </div>
     </form>
 </div>
 
