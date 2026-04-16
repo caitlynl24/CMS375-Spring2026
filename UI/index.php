@@ -21,8 +21,13 @@ if ($stmt) {
 }
 
 $upcomingPractices = [];
+$fitnessRecords = [];
+$matchRecords = [];
+$hasAnyPerformanceRecords = false;
 
 if ($athlete) {
+    $athleteId = (int)$athlete['athlete_id'];
+
     $practiceStmt = $conn->prepare(
         "SELECT title, start_time, end_time, location
          FROM practice_schedule
@@ -32,13 +37,35 @@ if ($athlete) {
     );
 
     if ($practiceStmt) {
-        $athleteId = (int)$athlete['athlete_id'];
         $practiceStmt->bind_param("i", $athleteId);
         $practiceStmt->execute();
         $practiceResult = $practiceStmt->get_result();
 
         while ($row = $practiceResult->fetch_assoc()) {
             $upcomingPractices[] = $row;
+        }
+    }
+
+    $performanceStmt = $conn->prepare(
+        "SELECT category, metric_name, metric_value, record_date, notes
+         FROM performance_records
+         WHERE athlete_id = ?
+         ORDER BY category ASC, record_date DESC, metric_name ASC"
+    );
+
+    if ($performanceStmt) {
+        $performanceStmt->bind_param("i", $athleteId);
+        $performanceStmt->execute();
+        $performanceResult = $performanceStmt->get_result();
+
+        while ($record = $performanceResult->fetch_assoc()) {
+            $hasAnyPerformanceRecords = true;
+
+            if ($record['category'] === 'fitness') {
+                $fitnessRecords[] = $record;
+            } elseif ($record['category'] === 'match') {
+                $matchRecords[] = $record;
+            }
         }
     }
 }
@@ -112,21 +139,61 @@ if ($athlete) {
             <div id="performance" class="page">
                 <h1>Performance Tracking</h1>
 
-                <div class="grid">
-
+                <?php if (!$athlete): ?>
                     <div class="card">
-                        <h3>Game Statistics</h3>
-                        <p>Points: 18</p>
-                        <p>Assists: 6</p>
+                        <p>No athlete profile found for your account.</p>
+                        <a href="athlete_create.php"><button>Create Athlete Profile</button></a>
                     </div>
-
+                <?php elseif (!$hasAnyPerformanceRecords): ?>
                     <div class="card">
-                        <h3>Training Metrics</h3>
-                        <p>Speed: High</p>
-                        <p>Endurance: Medium</p>
+                        <p>No performance records found yet.</p>
+                        <p>Add mock data to <code>performance_records</code> for your athlete profile to view statistics here.</p>
                     </div>
+                <?php else: ?>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Fitness Statistics</h3>
+                            <?php if (empty($fitnessRecords)): ?>
+                                <p>No fitness records yet.</p>
+                            <?php else: ?>
+                                <?php foreach ($fitnessRecords as $record): ?>
+                                    <p>
+                                        <strong><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $record['metric_name']))); ?>:</strong>
+                                        <?php echo htmlspecialchars((string)$record['metric_value']); ?>
+                                        <br>
+                                        <small>
+                                            <?php echo htmlspecialchars(date('M j, Y', strtotime($record['record_date']))); ?>
+                                            <?php if (!empty($record['notes'])): ?>
+                                                - <?php echo htmlspecialchars($record['notes']); ?>
+                                            <?php endif; ?>
+                                        </small>
+                                    </p>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
 
-                </div>
+                        <div class="card">
+                            <h3>Match Statistics</h3>
+                            <?php if (empty($matchRecords)): ?>
+                                <p>No match records yet.</p>
+                            <?php else: ?>
+                                <?php foreach ($matchRecords as $record): ?>
+                                    <p>
+                                        <strong><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $record['metric_name']))); ?>:</strong>
+                                        <?php echo htmlspecialchars((string)$record['metric_value']); ?>
+                                        <br>
+                                        <small>
+                                            <?php echo htmlspecialchars(date('M j, Y', strtotime($record['record_date']))); ?>
+                                            <?php if (!empty($record['notes'])): ?>
+                                                - <?php echo htmlspecialchars($record['notes']); ?>
+                                            <?php endif; ?>
+                                        </small>
+                                    </p>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Schedule -->
