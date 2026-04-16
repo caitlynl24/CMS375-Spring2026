@@ -99,6 +99,11 @@ while ($practice = $practices->fetch_assoc()) {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
+        .day-column.today {
+            border: 2px solid #c99700;
+            background: #fffdf4;
+        }
+
         .day-header {
             margin: 0 0 12px 0;
             padding-bottom: 10px;
@@ -108,7 +113,29 @@ while ($practice = $practices->fetch_assoc()) {
 
         .practice-item {
             border-top: 1px solid #efefef;
-            padding: 10px 0;
+            padding: 8px 0;
+        }
+
+        .practice-title {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2d3d;
+        }
+
+        .practice-meta {
+            margin: 2px 0;
+            font-size: 13px;
+            color: #4b5563;
+            line-height: 1.35;
+        }
+
+        .practice-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .practice-item:first-of-type {
@@ -151,26 +178,27 @@ while ($practice = $practices->fetch_assoc()) {
     </div>
 
     <div class="week-grid">
-        <?php foreach ($weekDays as $day): ?>
-            <div class="day-column">
+        <?php $todayKey = (new DateTime())->format('Y-m-d'); ?>
+        <?php foreach ($weekDays as $dayKey => $day): ?>
+            <div class="day-column <?php echo ($dayKey === $todayKey) ? 'today' : ''; ?>">
                 <h3 class="day-header"><?php echo htmlspecialchars($day['label']); ?></h3>
 
                 <?php if (empty($day['practices'])): ?>
-                    <p>No practices scheduled.</p>
+                    <p class="practice-meta">No practices scheduled.</p>
                 <?php else: ?>
                     <?php foreach ($day['practices'] as $practice): ?>
                         <div class="practice-item">
-                            <p><strong><?php echo htmlspecialchars($practice['title']); ?></strong></p>
-                            <p>
+                            <p class="practice-title"><?php echo htmlspecialchars($practice['title']); ?></p>
+                            <p class="practice-meta">
                                 <strong>Time:</strong>
                                 <?php echo htmlspecialchars(date('g:i A', strtotime($practice['start_time']))); ?>
                                 <?php if (!empty($practice['end_time'])): ?>
                                     - <?php echo htmlspecialchars(date('g:i A', strtotime($practice['end_time']))); ?>
                                 <?php endif; ?>
                             </p>
-                            <p><strong>Location:</strong> <?php echo htmlspecialchars($practice['location'] ?? ''); ?></p>
-                            <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($practice['notes'] ?? '')); ?></p>
-                            <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+                            <p class="practice-meta"><strong>Location:</strong> <?php echo htmlspecialchars($practice['location'] ?? ''); ?></p>
+                            <p class="practice-meta"><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($practice['notes'] ?? '')); ?></p>
+                            <div class="practice-actions">
                                 <a href="practice_edit.php?practice_id=<?php echo urlencode((string)$practice['practice_id']); ?>">
                                     <button>Edit</button>
                                 </a>
