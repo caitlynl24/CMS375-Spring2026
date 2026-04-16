@@ -26,10 +26,30 @@ if (!$athlete) {
 
 $athleteId = (int)$athlete['athlete_id'];
 
+// Determine selected week start (Monday). Falls back to current week.
+$weekStartInput = $_GET['week_start'] ?? '';
+$weekStartDate = DateTime::createFromFormat('Y-m-d', $weekStartInput);
+
+if ($weekStartDate && $weekStartDate->format('Y-m-d') === $weekStartInput) {
+    $weekStart = clone $weekStartDate;
+    if ($weekStart->format('N') !== '1') {
+        $weekStart->modify('monday this week');
+    }
+} else {
+    $weekStart = new DateTime('monday this week');
+}
+
+$weekStart->setTime(0, 0, 0);
+$nextWeekStart = (clone $weekStart)->modify('+7 days');
+$previousWeekStart = (clone $weekStart)->modify('-7 days');
+
+$weekStartSql = $weekStart->format('Y-m-d H:i:s');
+$nextWeekStartSql = $nextWeekStart->format('Y-m-d H:i:s');
+
 $practiceStmt = $conn->prepare(
     "SELECT practice_id, title, start_time, end_time, location, notes
      FROM practice_schedule
-     WHERE athlete_id = ?
+     WHERE athlete_id = ? AND start_time >= ? AND start_time < ?
      ORDER BY start_time ASC"
 );
 
@@ -37,9 +57,26 @@ if (!$practiceStmt) {
     die("Unable to load practice schedule.");
 }
 
-$practiceStmt->bind_param("i", $athleteId);
+$practiceStmt->bind_param("iss", $athleteId, $weekStartSql, $nextWeekStartSql);
 $practiceStmt->execute();
 $practices = $practiceStmt->get_result();
+
+$weekDays = [];
+for ($i = 0; $i < 7; $i++) {
+    $day = (clone $weekStart)->modify("+$i days");
+    $dayKey = $day->format('Y-m-d');
+    $weekDays[$dayKey] = [
+        'label' => $day->format('l, M j'),
+        'practices' => []
+    ];
+}
+
+while ($practice = $practices->fetch_assoc()) {
+    $dayKey = date('Y-m-d', strtotime($practice['start_time']));
+    if (isset($weekDays[$dayKey])) {
+        $weekDays[$dayKey]['practices'][] = $practice;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -47,6 +84,50 @@ $practices = $practiceStmt->get_result();
     <meta charset="UTF-8">
     <title>Practice Schedule</title>
     <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .day-column {
+            background: white;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .day-header {
+            margin: 0 0 12px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e8e8e8;
+            font-size: 16px;
+        }
+
+        .practice-item {
+            border-top: 1px solid #efefef;
+            padding: 10px 0;
+        }
+
+        .practice-item:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .week-grid {
+                grid-template-columns: repeat(3, minmax(220px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .week-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -61,22 +142,49 @@ $practices = $practiceStmt->get_result();
         </div>
     </div>
 
-    <?php if ($practices->num_rows === 0): ?>
-        <div class="card">
-            <p>No practices scheduled yet.</p>
-            <a href="practice_create.php"><button>Add Your First Practice</button></a>
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <a href="practice.php?week_start=<?php echo urlencode($previousWeekStart->format('Y-m-d')); ?>">Previous Week</a>
+            <p style="margin:0;"><strong><?php echo htmlspecialchars($weekStart->format('M j, Y')); ?> - <?php echo htmlspecialchars((clone $weekStart)->modify('+6 days')->format('M j, Y')); ?></strong></p>
+            <a href="practice.php?week_start=<?php echo urlencode($nextWeekStart->format('Y-m-d')); ?>">Next Week</a>
         </div>
-    <?php else: ?>
-        <?php while ($practice = $practices->fetch_assoc()): ?>
-            <div class="card">
-                <p><strong>Title:</strong> <?php echo htmlspecialchars($practice['title']); ?></p>
-                <p><strong>Start:</strong> <?php echo htmlspecialchars($practice['start_time']); ?></p>
-                <p><strong>End:</strong> <?php echo htmlspecialchars($practice['end_time'] ?? ''); ?></p>
-                <p><strong>Location:</strong> <?php echo htmlspecialchars($practice['location'] ?? ''); ?></p>
-                <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($practice['notes'] ?? '')); ?></p>
+    </div>
+
+    <div class="week-grid">
+        <?php foreach ($weekDays as $day): ?>
+            <div class="day-column">
+                <h3 class="day-header"><?php echo htmlspecialchars($day['label']); ?></h3>
+
+                <?php if (empty($day['practices'])): ?>
+                    <p>No practices scheduled.</p>
+                <?php else: ?>
+                    <?php foreach ($day['practices'] as $practice): ?>
+                        <div class="practice-item">
+                            <p><strong><?php echo htmlspecialchars($practice['title']); ?></strong></p>
+                            <p>
+                                <strong>Time:</strong>
+                                <?php echo htmlspecialchars(date('g:i A', strtotime($practice['start_time']))); ?>
+                                <?php if (!empty($practice['end_time'])): ?>
+                                    - <?php echo htmlspecialchars(date('g:i A', strtotime($practice['end_time']))); ?>
+                                <?php endif; ?>
+                            </p>
+                            <p><strong>Location:</strong> <?php echo htmlspecialchars($practice['location'] ?? ''); ?></p>
+                            <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($practice['notes'] ?? '')); ?></p>
+                            <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+                                <a href="practice_edit.php?practice_id=<?php echo urlencode((string)$practice['practice_id']); ?>">
+                                    <button>Edit</button>
+                                </a>
+                                <form method="POST" action="practice_delete.php" onsubmit="return confirm('Delete this practice? This cannot be undone.');" style="margin:0;">
+                                    <input type="hidden" name="practice_id" value="<?php echo htmlspecialchars((string)$practice['practice_id']); ?>">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-        <?php endwhile; ?>
-    <?php endif; ?>
+        <?php endforeach; ?>
+    </div>
 </div>
 
 </body>
