@@ -19,6 +19,29 @@ if ($stmt) {
 } else {
     $athlete = null;
 }
+
+$upcomingPractices = [];
+
+if ($athlete) {
+    $practiceStmt = $conn->prepare(
+        "SELECT title, start_time, end_time, location
+         FROM practice_schedule
+         WHERE athlete_id = ? AND start_time >= NOW()
+         ORDER BY start_time ASC
+         LIMIT 3"
+    );
+
+    if ($practiceStmt) {
+        $athleteId = (int)$athlete['athlete_id'];
+        $practiceStmt->bind_param("i", $athleteId);
+        $practiceStmt->execute();
+        $practiceResult = $practiceStmt->get_result();
+
+        while ($row = $practiceResult->fetch_assoc()) {
+            $upcomingPractices[] = $row;
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -110,15 +133,36 @@ if ($stmt) {
             <div id="schedule" class="page">
                 <h1>Schedule</h1>
 
-                <div class="calendar">
-                    <div class="day">Mon<br><span class="practice">Practice</span></div>
-                    <div class="day">Tue<br><span class="lift">Lift</span></div>
-                    <div class="day">Wed<br><span class="practice">Practice</span></div>
-                    <div class="day">Thu<br><span class="rest">Rest</span></div>
-                    <div class="day">Fri<br><span class="game">Game</span></div>
-                    <div class="day">Sat</div>
-                    <div class="day">Sun</div>
-                </div>
+                <?php if (!$athlete): ?>
+                    <div class="card">
+                        <p>No athlete profile found for your account.</p>
+                        <a href="athlete_create.php"><button>Create Athlete Profile</button></a>
+                    </div>
+                <?php else: ?>
+                    <div class="card">
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <a href="practice_create.php"><button>Add Practice</button></a>
+                            <a href="practice.php"><button>View Full Schedule</button></a>
+                        </div>
+
+                        <h3>Next 3 Upcoming Practices</h3>
+                        <?php if (empty($upcomingPractices)): ?>
+                            <p>No upcoming practices scheduled.</p>
+                        <?php else: ?>
+                            <?php foreach ($upcomingPractices as $practice): ?>
+                                <p><strong><?php echo htmlspecialchars($practice['title']); ?></strong></p>
+                                <p>
+                                    <?php echo htmlspecialchars($practice['start_time']); ?>
+                                    <?php if (!empty($practice['end_time'])): ?>
+                                        - <?php echo htmlspecialchars($practice['end_time']); ?>
+                                    <?php endif; ?>
+                                </p>
+                                <p><strong>Location:</strong> <?php echo htmlspecialchars($practice['location'] ?? ''); ?></p>
+                                <hr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Communication -->
