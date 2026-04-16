@@ -7,6 +7,18 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $role = $_SESSION['role'];
+
+require 'db.php';
+
+$userId = $_SESSION['user_id'];
+$stmt = $conn->prepare("SELECT athlete_id, full_name, age, sport, position FROM athletes WHERE user_id = ?");
+if ($stmt) {
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $athlete = $stmt->get_result()->fetch_assoc();
+} else {
+    $athlete = null;
+}
 ?>
 
 <!DOCTYPE html>
@@ -46,7 +58,7 @@ $role = $_SESSION['role'];
             <h1>Rollins Athletics Dashboard</h1>
 
             <div class="user">
-                Welcome, <?php echo $_SESSION['name']; ?>
+                Welcome, <?php echo htmlspecialchars($_SESSION['name']); ?>
                 |
                 <a href="logout.php">Logout</a>
             </div>
@@ -60,11 +72,16 @@ $role = $_SESSION['role'];
                 <h1>Profile</h1>
 
                 <div class="card">
-                    <p><strong>Name:</strong> John Doe</p>
-                    <p><strong>Age:</strong> 20</p>
-                    <p><strong>Sport:</strong> Basketball</p>
-                    <p><strong>Position:</strong> Guard</p>
-                    <button>Edit Profile</button>
+                    <?php if (!$athlete): ?>
+                        <p>No athlete profile found for your account.</p>
+                        <a href="athlete_create.php"><button>Create Athlete Profile</button></a>
+                    <?php else: ?>
+                        <p><strong>Name:</strong> <?php echo htmlspecialchars($athlete['full_name']); ?></p>
+                        <p><strong>Age:</strong> <?php echo htmlspecialchars($athlete['age'] ?? ''); ?></p>
+                        <p><strong>Sport:</strong> <?php echo htmlspecialchars($athlete['sport'] ?? ''); ?></p>
+                        <p><strong>Position:</strong> <?php echo htmlspecialchars($athlete['position'] ?? ''); ?></p>
+                        <a href="athletes.php"><button>Manage Athlete Profile</button></a>
+                    <?php endif; ?>
                 </div>
             </div>
 
