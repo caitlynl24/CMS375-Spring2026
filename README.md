@@ -11,6 +11,10 @@ AthleteHub is a database-driven web application with an integrated platform desi
 
 Our system centralizes athlete data, team scheduling, performance statistics, medical records, and communication into one secure relational database system with role-based access control.
 
+Current accounts:
+email: sfruijtier@rollins.edu   pw: Framboise
+email seckstein@rollins.edu     pw: 12345
+
 ## Team Members & Roles
 
 - **Stella Fruijtier** – Team Lead / Database Architect  
