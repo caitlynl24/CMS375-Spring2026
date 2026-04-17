@@ -14,11 +14,11 @@ Our system centralizes athlete data, team scheduling, performance statistics, me
 Current accounts:
 (athlete) email: sfruijtier@rollins.edu   pw: Framboise
 (athlete) email seckstein@rollins.edu     pw: 12345
-(coach) email: lsteiner@gmail.com        pw: 23456
+(coach) email: tbatista@rollins.edu        pw: 23456
 
 ## Team Members & Roles
 
-- **Stella Fruijtier** – Team Lead / Database Architect  
+- **Stella Fruijtier** – Team Lead/Database Architect  
   - Schema design
   - Primary & foreign keys
   - SQL queries
