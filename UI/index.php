@@ -54,7 +54,7 @@ if ($athlete) {
          FROM practice_schedule
          WHERE athlete_id = ? AND start_time >= NOW()
          ORDER BY start_time ASC
-         LIMIT 3"
+         LIMIT 1"
     );
 
     if ($practiceStmt) {
@@ -286,7 +286,7 @@ if ($athlete) {
                             <a href="practice.php"><button>View Full Schedule</button></a>
                         </div>
 
-                        <h3>Next 3 Upcoming Practices</h3>
+                        <h3>Next Practice</h3>
                         <?php if (empty($upcomingPractices)): ?>
                             <p>No upcoming practices scheduled.</p>
                         <?php else: ?>

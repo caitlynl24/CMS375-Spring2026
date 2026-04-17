@@ -65,10 +65,12 @@ if (!in_array($activeTab, $allowedTabs, true)) {
                     <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
                         <a href="coach_practice_create.php"><button>Add Practice</button></a>
                         <a href="coach_game_create.php"><button>Add Game</button></a>
+                        <a href="coach_practice_schedule.php"><button>Manage Practices</button></a>
+                        <a href="coach_game_schedule.php"><button>Manage Games</button></a>
                     </div>
 
                     <p><strong>Coach tools</strong></p>
-                    <p>Create practices and games for athletes from the buttons above.</p>
+                    <p>Create practices and games for athletes, or manage existing items in the weekly views.</p>
                 </div>
             </div>
 

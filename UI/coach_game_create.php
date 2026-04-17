@@ -6,7 +6,8 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'coach') {
+$role = isset($_SESSION['role']) ? strtolower(trim((string)$_SESSION['role'])) : '';
+if ($role !== 'coach') {
     header("Location: index.php");
     exit();
 }
