@@ -22,3 +22,5 @@ CREATE TABLE messages (
   INDEX idx_messages_athlete_sent (athlete_id, sent_at),
   INDEX idx_messages_athlete_role_sent (athlete_id, recipient_role, sent_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SELECT * FROM messages;

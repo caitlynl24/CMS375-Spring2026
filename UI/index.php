@@ -37,6 +37,7 @@ $fitnessRecords = [];
 $matchRecords = [];
 $hasAnyPerformanceRecords = false;
 $messages = [];
+$medicalRecords = [];
 
 if ($athlete) {
     $athleteId = (int)$athlete['athlete_id'];
@@ -97,6 +98,24 @@ if ($athlete) {
 
         while ($msg = $messagesResult->fetch_assoc()) {
             $messages[] = $msg;
+        }
+    }
+
+    $medicalStmt = $conn->prepare(
+        "SELECT injury_title, injury_details, reported_date, status, clearance_status,
+                expected_return_date, cleared_date, notes
+         FROM medical_records
+         WHERE athlete_id = ?
+         ORDER BY reported_date DESC"
+    );
+
+    if ($medicalStmt) {
+        $medicalStmt->bind_param("i", $athleteId);
+        $medicalStmt->execute();
+        $medicalResult = $medicalStmt->get_result();
+
+        while ($row = $medicalResult->fetch_assoc()) {
+            $medicalRecords[] = $row;
         }
     }
 }
@@ -317,15 +336,41 @@ if ($athlete) {
             <div id="medical" class="page <?php echo ($activeTab === 'medical') ? 'active' : ''; ?>">
                 <h1>Medical Records</h1>
 
-                <div class="card">
-                    <p><strong>Injury:</strong> Ankle Sprain</p>
-                    <p class="status recovering">Status: Recovering</p>
-
-                    <div id="coachRestriction" class="hidden">
-                        <p>Access Restricted: Request permission from athlete.</p>
-                        <button>Request Access</button>
+                <?php if (!$athlete): ?>
+                    <div class="card">
+                        <p>No athlete profile found for your account.</p>
+                        <a href="athlete_create.php"><button>Create Athlete Profile</button></a>
                     </div>
-                </div>
+                <?php elseif (empty($medicalRecords)): ?>
+                    <div class="card">
+                        <p>No medical records found yet.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($medicalRecords as $record): ?>
+                        <div class="card">
+                            <p><strong>Injury:</strong> <?php echo htmlspecialchars($record['injury_title']); ?></p>
+                            <p><strong>Reported:</strong> <?php echo htmlspecialchars(date('M j, Y', strtotime($record['reported_date']))); ?></p>
+                            <p><strong>Status:</strong> <?php echo htmlspecialchars(ucwords($record['status'])); ?></p>
+                            <p><strong>Clearance:</strong> <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $record['clearance_status']))); ?></p>
+
+                            <?php if (!empty($record['expected_return_date'])): ?>
+                                <p><strong>Expected Return:</strong> <?php echo htmlspecialchars(date('M j, Y', strtotime($record['expected_return_date']))); ?></p>
+                            <?php endif; ?>
+
+                            <?php if (!empty($record['cleared_date'])): ?>
+                                <p><strong>Cleared Date:</strong> <?php echo htmlspecialchars(date('M j, Y', strtotime($record['cleared_date']))); ?></p>
+                            <?php endif; ?>
+
+                            <?php if (!empty($record['injury_details'])): ?>
+                                <p><strong>Details:</strong> <?php echo nl2br(htmlspecialchars($record['injury_details'])); ?></p>
+                            <?php endif; ?>
+
+                            <?php if (!empty($record['notes'])): ?>
+                                <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($record['notes'])); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
 
         </div>
