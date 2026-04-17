@@ -8,15 +8,15 @@ if (!isset($_SESSION['user_id'])) {
 
 require 'db.php';
 
-$userId = $_SESSION['user_id'];
+$userId = (int)$_SESSION['user_id'];
 $content = trim($_POST['content'] ?? '');
-$recipientRole = trim($_POST['recipient_role'] ?? '');
+$conversation = trim($_POST['conversation'] ?? '');
 
-$allowedRecipientRoles = ['coach', 'athletic_trainer'];
+$allowedConversations = ['coach', 'athletic_trainer'];
 
-if ($content === '' || !in_array($recipientRole, $allowedRecipientRoles, true)) {
-    $safeRole = in_array($recipientRole, $allowedRecipientRoles, true) ? $recipientRole : 'coach';
-    header("Location: index.php?tab=communication&conversation=" . urlencode($safeRole));
+if ($content === '' || !in_array($conversation, $allowedConversations, true)) {
+    $safe = in_array($conversation, $allowedConversations, true) ? $conversation : 'coach';
+    header("Location: index.php?tab=communication&conversation=" . urlencode($safe));
     exit();
 }
 
@@ -37,18 +37,36 @@ if (!$athlete) {
 
 $athleteId = (int)$athlete['athlete_id'];
 
-$stmt = $conn->prepare(
-    "INSERT INTO messages (athlete_id, sender_user_id, recipient_role, content)
-     VALUES (?, ?, ?, ?)"
-);
-if (!$stmt) {
-    header("Location: index.php");
+$peerRole = $conversation === 'coach' ? 'coach' : 'athletic_trainer';
+$peerStmt = $conn->prepare("SELECT user_id FROM users WHERE LOWER(TRIM(role)) = ? ORDER BY user_id ASC LIMIT 1");
+if (!$peerStmt) {
+    header("Location: index.php?tab=communication&conversation=" . urlencode($conversation) . "&error=" . urlencode("Unable to send message."));
     exit();
 }
 
-$stmt->bind_param("iiss", $athleteId, $userId, $recipientRole, $content);
+$peerStmt->bind_param("s", $peerRole);
+$peerStmt->execute();
+$peerRow = $peerStmt->get_result()->fetch_assoc();
+
+if (!$peerRow) {
+    header("Location: index.php?tab=communication&conversation=" . urlencode($conversation) . "&error=" . urlencode("No staff account is available for this conversation yet."));
+    exit();
+}
+
+$recipientUserId = (int)$peerRow['user_id'];
+
+$stmt = $conn->prepare(
+    "INSERT INTO messages (message_type, athlete_id, sender_user_id, recipient_user_id, recipient_group, content)
+     VALUES ('direct', ?, ?, ?, NULL, ?)"
+);
+
+if (!$stmt) {
+    header("Location: index.php?tab=communication&conversation=" . urlencode($conversation));
+    exit();
+}
+
+$stmt->bind_param("iiis", $athleteId, $userId, $recipientUserId, $content);
 $stmt->execute();
 
-header("Location: index.php?tab=communication&conversation=" . urlencode($recipientRole));
+header("Location: index.php?tab=communication&conversation=" . urlencode($conversation));
 exit();
-

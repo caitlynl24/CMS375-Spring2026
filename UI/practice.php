@@ -164,7 +164,6 @@ while ($practice = $practices->fetch_assoc()) {
         <div class="user">
             <?php echo htmlspecialchars($_SESSION['name']); ?> |
             <a href="index.php">Dashboard</a> |
-            <a href="practice_create.php">Add Practice</a> |
             <a href="logout.php">Logout</a>
         </div>
     </div>

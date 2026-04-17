@@ -96,6 +96,23 @@ body {
     transform: translateY(-4px);
 }
 
+/* Athlete Communication: coach DM thread — one card, no hover lift */
+.card.card--coach-direct:hover {
+    transform: none;
+}
+
+.card.card--coach-direct .chat-box {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    background: #f4f6f9;
+    border: 1px solid #e5e7eb;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.card.card--coach-direct .error--inline {
+    text-align: left;
+}
+
 /* Grid */
 .grid {
     display: grid;

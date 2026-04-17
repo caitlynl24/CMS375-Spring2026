@@ -1,4 +1,7 @@
 -- AthleteHub - Users table (auth)
+--
+-- Existing databases: extend role enum if the table already exists:
+--   ALTER TABLE users MODIFY COLUMN role ENUM('athlete','coach','athletic_trainer') NOT NULL;
 
 USE athletics_db;
 
@@ -7,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('athlete','coach') NOT NULL,
+  role ENUM('athlete','coach','athletic_trainer') NOT NULL,
   CONSTRAINT uq_users_email UNIQUE (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

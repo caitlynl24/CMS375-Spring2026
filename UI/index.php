@@ -6,7 +6,9 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-if (isset($_SESSION['role']) && $_SESSION['role'] === 'coach') {
+// Coaches go to coach dashboard. athletic_trainer (and athletes) stay here until a staff dashboard exists.
+$sessionRoleNorm = isset($_SESSION['role']) ? strtolower(trim((string)$_SESSION['role'])) : '';
+if ($sessionRoleNorm === 'coach') {
     header("Location: coach_dashboard.php");
     exit();
 }
@@ -21,11 +23,8 @@ if (!in_array($activeTab, $allowedTabs, true)) {
     $activeTab = 'profile';
 }
 
-$conversation = $_GET['conversation'] ?? 'coach';
-$allowedConversations = ['coach', 'athletic_trainer'];
-if (!in_array($conversation, $allowedConversations, true)) {
-    $conversation = 'coach';
-}
+// Athlete Communication: coach direct messages only (no conversation switcher).
+$conversation = 'coach';
 
 $userId = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT athlete_id, full_name, age, sport, position FROM athletes WHERE user_id = ?");
@@ -42,6 +41,7 @@ $fitnessRecords = [];
 $matchRecords = [];
 $hasAnyPerformanceRecords = false;
 $messages = [];
+$teamAnnouncements = [];
 $medicalRecords = [];
 $games = [];
 $upcomingGames = [];
@@ -90,21 +90,64 @@ if ($athlete) {
         }
     }
 
-    $messagesStmt = $conn->prepare(
-        "SELECT u.name AS sender_name, m.recipient_role, m.content, m.sent_at
+    $peerRole = 'coach';
+    $communicationPeerUserId = null;
+    $peerLookupStmt = $conn->prepare("SELECT user_id FROM users WHERE LOWER(TRIM(role)) = ? ORDER BY user_id ASC LIMIT 1");
+    if ($peerLookupStmt) {
+        $peerLookupStmt->bind_param("s", $peerRole);
+        $peerLookupStmt->execute();
+        $peerLookupRow = $peerLookupStmt->get_result()->fetch_assoc();
+        if ($peerLookupRow) {
+            $communicationPeerUserId = (int)$peerLookupRow['user_id'];
+        }
+    }
+
+    if ($communicationPeerUserId !== null) {
+        $messagesStmt = $conn->prepare(
+            "SELECT u.name AS sender_name, m.content, m.sent_at
+             FROM messages m
+             INNER JOIN users u ON m.sender_user_id = u.user_id
+             WHERE m.message_type = 'direct'
+               AND m.athlete_id = ?
+               AND (
+                   (m.sender_user_id = ? AND m.recipient_user_id = ?)
+                   OR
+                   (m.sender_user_id = ? AND m.recipient_user_id = ?)
+               )
+             ORDER BY m.sent_at ASC"
+        );
+
+        if ($messagesStmt) {
+            $messagesStmt->bind_param(
+                "iiiii",
+                $athleteId,
+                $userId,
+                $communicationPeerUserId,
+                $communicationPeerUserId,
+                $userId
+            );
+            $messagesStmt->execute();
+            $messagesResult = $messagesStmt->get_result();
+
+            while ($msg = $messagesResult->fetch_assoc()) {
+                $messages[] = $msg;
+            }
+        }
+    }
+
+    $teamAnnStmt = $conn->prepare(
+        "SELECT u.name AS sender_name, m.content, m.sent_at
          FROM messages m
          INNER JOIN users u ON m.sender_user_id = u.user_id
-         WHERE m.athlete_id = ? AND m.recipient_role = ?
-         ORDER BY sent_at ASC"
+         WHERE m.message_type = 'announcement' AND m.recipient_group = 'team'
+         ORDER BY m.sent_at DESC"
     );
 
-    if ($messagesStmt) {
-        $messagesStmt->bind_param("is", $athleteId, $conversation);
-        $messagesStmt->execute();
-        $messagesResult = $messagesStmt->get_result();
-
-        while ($msg = $messagesResult->fetch_assoc()) {
-            $messages[] = $msg;
+    if ($teamAnnStmt) {
+        $teamAnnStmt->execute();
+        $teamAnnResult = $teamAnnStmt->get_result();
+        while ($row = $teamAnnResult->fetch_assoc()) {
+            $teamAnnouncements[] = $row;
         }
     }
 
@@ -339,37 +382,50 @@ if ($athlete) {
                     </div>
                 <?php else: ?>
                     <div class="card">
-                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                            <a href="index.php?tab=communication&conversation=coach">
-                                <button <?php echo ($conversation === 'coach') ? 'style="opacity:1;"' : 'style="opacity:0.7;"'; ?>>Coach</button>
-                            </a>
-                            <a href="index.php?tab=communication&conversation=athletic_trainer">
-                                <button <?php echo ($conversation === 'athletic_trainer') ? 'style="opacity:1;"' : 'style="opacity:0.7;"'; ?>>Athletic Trainer</button>
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="chat-box" id="chat">
-                        <?php if (empty($messages)): ?>
-                            <p>No messages yet.</p>
+                        <h3>Team announcements</h3>
+                        <p style="margin-top:0;color:#4b5563;font-size:13px;">From your coach (not a reply thread).</p>
+                        <?php if (empty($teamAnnouncements)): ?>
+                            <p>No team announcements yet.</p>
                         <?php else: ?>
-                            <?php foreach ($messages as $msg): ?>
+                            <?php foreach ($teamAnnouncements as $ann): ?>
                                 <p>
-                                    <strong><?php echo htmlspecialchars($msg['sender_name']); ?></strong>
-                                    <small>(<?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $conversation))); ?>)</small>:
-                                    <?php echo htmlspecialchars($msg['content']); ?>
-                                    <br>
-                                    <small><?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($msg['sent_at']))); ?></small>
+                                    <strong><?php echo htmlspecialchars($ann['sender_name']); ?></strong>
+                                    <small> — <?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($ann['sent_at']))); ?></small><br>
+                                    <?php echo nl2br(htmlspecialchars($ann['content'])); ?>
                                 </p>
+                                <hr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
 
-                    <form class="chat-input" method="POST" action="message_create_handler.php">
-                        <input type="hidden" name="recipient_role" value="<?php echo htmlspecialchars($conversation); ?>">
-                        <input type="text" name="content" id="messageInput" placeholder="Type a message..." required>
-                        <button type="submit">Send</button>
-                    </form>
+                    <div class="card card--coach-direct">
+                        <h3>Coach</h3>
+                        <?php if (isset($_GET['error'])): ?>
+                            <p class="error error--inline" style="margin-top:10px;"><?php echo htmlspecialchars($_GET['error']); ?></p>
+                        <?php endif; ?>
+
+                        <div class="chat-box" id="chat">
+                            <?php if (empty($messages)): ?>
+                                <p>No messages yet.</p>
+                            <?php else: ?>
+                                <?php foreach ($messages as $msg): ?>
+                                    <p>
+                                        <strong><?php echo htmlspecialchars($msg['sender_name']); ?></strong>
+                                        <small>(Coach)</small>:
+                                        <?php echo htmlspecialchars($msg['content']); ?>
+                                        <br>
+                                        <small><?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($msg['sent_at']))); ?></small>
+                                    </p>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+
+                        <form class="chat-input" method="POST" action="message_create_handler.php">
+                            <input type="hidden" name="conversation" value="<?php echo htmlspecialchars($conversation); ?>">
+                            <input type="text" name="content" id="messageInput" placeholder="Type a message..." required>
+                            <button type="submit">Send</button>
+                        </form>
+                    </div>
                 <?php endif; ?>
             </div>
 
