@@ -46,20 +46,20 @@ $previousWeekStart = (clone $weekStart)->modify('-7 days');
 $weekStartSql = $weekStart->format('Y-m-d H:i:s');
 $nextWeekStartSql = $nextWeekStart->format('Y-m-d H:i:s');
 
-$practiceStmt = $conn->prepare(
-    "SELECT practice_id, title, start_time, end_time, location, notes
-     FROM practice_schedule
-     WHERE athlete_id = ? AND start_time >= ? AND start_time < ?
-     ORDER BY start_time ASC"
+$gamesStmt = $conn->prepare(
+    "SELECT game_id, opponent, game_datetime, location, notes
+     FROM game_schedule
+     WHERE athlete_id = ? AND game_datetime >= ? AND game_datetime < ?
+     ORDER BY game_datetime ASC"
 );
 
-if (!$practiceStmt) {
-    die("Unable to load practice schedule.");
+if (!$gamesStmt) {
+    die("Unable to load game schedule.");
 }
 
-$practiceStmt->bind_param("iss", $athleteId, $weekStartSql, $nextWeekStartSql);
-$practiceStmt->execute();
-$practices = $practiceStmt->get_result();
+$gamesStmt->bind_param("iss", $athleteId, $weekStartSql, $nextWeekStartSql);
+$gamesStmt->execute();
+$gamesResult = $gamesStmt->get_result();
 
 $weekDays = [];
 for ($i = 0; $i < 7; $i++) {
@@ -67,14 +67,14 @@ for ($i = 0; $i < 7; $i++) {
     $dayKey = $day->format('Y-m-d');
     $weekDays[$dayKey] = [
         'label' => $day->format('l, M j'),
-        'practices' => []
+        'games' => []
     ];
 }
 
-while ($practice = $practices->fetch_assoc()) {
-    $dayKey = date('Y-m-d', strtotime($practice['start_time']));
+while ($game = $gamesResult->fetch_assoc()) {
+    $dayKey = date('Y-m-d', strtotime($game['game_datetime']));
     if (isset($weekDays[$dayKey])) {
-        $weekDays[$dayKey]['practices'][] = $practice;
+        $weekDays[$dayKey]['games'][] = $game;
     }
 }
 ?>
@@ -82,7 +82,7 @@ while ($practice = $practices->fetch_assoc()) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Practice Schedule</title>
+    <title>Game Schedule</title>
     <link rel="stylesheet" href="assets/css/styles.css">
     <style>
         .week-grid {
@@ -111,36 +111,28 @@ while ($practice = $practices->fetch_assoc()) {
             font-size: 16px;
         }
 
-        .practice-item {
+        .game-item {
             border-top: 1px solid #efefef;
             padding: 8px 0;
         }
 
-        .practice-title {
+        .game-item:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .game-title {
             margin: 0 0 4px 0;
             font-size: 15px;
             font-weight: 700;
             color: #1f2d3d;
         }
 
-        .practice-meta {
+        .game-meta {
             margin: 2px 0;
             font-size: 13px;
             color: #4b5563;
             line-height: 1.35;
-        }
-
-        .practice-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .practice-item:first-of-type {
-            border-top: none;
-            padding-top: 0;
         }
 
         @media (max-width: 1200px) {
@@ -160,20 +152,19 @@ while ($practice = $practices->fetch_assoc()) {
 
 <div class="content">
     <div class="topbar" style="border-radius: 12px;">
-        <h1>Practice Schedule</h1>
+        <h1>Game Schedule</h1>
         <div class="user">
             <?php echo htmlspecialchars($_SESSION['name']); ?> |
             <a href="index.php">Dashboard</a> |
-            <a href="practice_create.php">Add Practice</a> |
             <a href="logout.php">Logout</a>
         </div>
     </div>
 
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-            <a href="practice.php?week_start=<?php echo urlencode($previousWeekStart->format('Y-m-d')); ?>">Previous Week</a>
+            <a href="game_schedule.php?week_start=<?php echo urlencode($previousWeekStart->format('Y-m-d')); ?>">Previous Week</a>
             <p style="margin:0;"><strong><?php echo htmlspecialchars($weekStart->format('M j, Y')); ?> - <?php echo htmlspecialchars((clone $weekStart)->modify('+6 days')->format('M j, Y')); ?></strong></p>
-            <a href="practice.php?week_start=<?php echo urlencode($nextWeekStart->format('Y-m-d')); ?>">Next Week</a>
+            <a href="game_schedule.php?week_start=<?php echo urlencode($nextWeekStart->format('Y-m-d')); ?>">Next Week</a>
         </div>
     </div>
 
@@ -183,21 +174,20 @@ while ($practice = $practices->fetch_assoc()) {
             <div class="day-column <?php echo ($dayKey === $todayKey) ? 'today' : ''; ?>">
                 <h3 class="day-header"><?php echo htmlspecialchars($day['label']); ?></h3>
 
-                <?php if (empty($day['practices'])): ?>
-                    <p class="practice-meta">No practices scheduled.</p>
+                <?php if (empty($day['games'])): ?>
+                    <p class="game-meta">No games scheduled.</p>
                 <?php else: ?>
-                    <?php foreach ($day['practices'] as $practice): ?>
-                        <div class="practice-item">
-                            <p class="practice-title"><?php echo htmlspecialchars($practice['title']); ?></p>
-                            <p class="practice-meta">
+                    <?php foreach ($day['games'] as $game): ?>
+                        <div class="game-item">
+                            <p class="game-title"><?php echo htmlspecialchars($game['opponent']); ?></p>
+                            <p class="game-meta">
                                 <strong>Time:</strong>
-                                <?php echo htmlspecialchars(date('g:i A', strtotime($practice['start_time']))); ?>
-                                <?php if (!empty($practice['end_time'])): ?>
-                                    - <?php echo htmlspecialchars(date('g:i A', strtotime($practice['end_time']))); ?>
-                                <?php endif; ?>
+                                <?php echo htmlspecialchars(date('g:i A', strtotime($game['game_datetime']))); ?>
                             </p>
-                            <p class="practice-meta"><strong>Location:</strong> <?php echo htmlspecialchars($practice['location'] ?? ''); ?></p>
-                            <p class="practice-meta"><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($practice['notes'] ?? '')); ?></p>
+                            <p class="game-meta"><strong>Location:</strong> <?php echo htmlspecialchars($game['location']); ?></p>
+                            <?php if (!empty($game['notes'])): ?>
+                                <p class="game-meta"><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($game['notes'])); ?></p>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>

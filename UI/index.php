@@ -38,6 +38,8 @@ $matchRecords = [];
 $hasAnyPerformanceRecords = false;
 $messages = [];
 $medicalRecords = [];
+$games = [];
+$upcomingGames = [];
 
 if ($athlete) {
     $athleteId = (int)$athlete['athlete_id'];
@@ -116,6 +118,24 @@ if ($athlete) {
 
         while ($row = $medicalResult->fetch_assoc()) {
             $medicalRecords[] = $row;
+        }
+    }
+
+    $gamesStmt = $conn->prepare(
+        "SELECT opponent, game_datetime, location, notes
+         FROM game_schedule
+         WHERE athlete_id = ? AND game_datetime >= NOW()
+         ORDER BY game_datetime ASC
+         LIMIT 3"
+    );
+
+    if ($gamesStmt) {
+        $gamesStmt->bind_param("i", $athleteId);
+        $gamesStmt->execute();
+        $gamesResult = $gamesStmt->get_result();
+
+        while ($row = $gamesResult->fetch_assoc()) {
+            $upcomingGames[] = $row;
         }
     }
 }
@@ -263,7 +283,6 @@ if ($athlete) {
                 <?php else: ?>
                     <div class="card">
                         <div style="display:flex; gap:10px; margin-bottom:15px;">
-                            <a href="practice_create.php"><button>Add Practice</button></a>
                             <a href="practice.php"><button>View Full Schedule</button></a>
                         </div>
 
@@ -280,6 +299,28 @@ if ($athlete) {
                                     <?php endif; ?>
                                 </p>
                                 <p><strong>Location:</strong> <?php echo htmlspecialchars($practice['location'] ?? ''); ?></p>
+                                <hr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="card">
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <a href="game_schedule.php"><button>View Full Game Schedule</button></a>
+                        </div>
+
+                        <h3>Next 3 Upcoming Games</h3>
+
+                        <?php if (empty($upcomingGames)): ?>
+                            <p>No upcoming games scheduled.</p>
+                        <?php else: ?>
+                            <?php foreach ($upcomingGames as $game): ?>
+                                <p><strong>Opponent:</strong> <?php echo htmlspecialchars($game['opponent']); ?></p>
+                                <p><strong>Date/Time:</strong> <?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($game['game_datetime']))); ?></p>
+                                <p><strong>Location:</strong> <?php echo htmlspecialchars($game['location']); ?></p>
+                                <?php if (!empty($game['notes'])): ?>
+                                    <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($game['notes'])); ?></p>
+                                <?php endif; ?>
                                 <hr>
                             <?php endforeach; ?>
                         <?php endif; ?>
