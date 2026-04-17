@@ -24,6 +24,7 @@ $upcomingPractices = [];
 $fitnessRecords = [];
 $matchRecords = [];
 $hasAnyPerformanceRecords = false;
+$messages = [];
 
 if ($athlete) {
     $athleteId = (int)$athlete['athlete_id'];
@@ -66,6 +67,24 @@ if ($athlete) {
             } elseif ($record['category'] === 'match') {
                 $matchRecords[] = $record;
             }
+        }
+    }
+
+    $messagesStmt = $conn->prepare(
+        "SELECT u.name AS sender_name, m.recipient_role, m.content, m.sent_at
+         FROM messages m
+         INNER JOIN users u ON m.sender_user_id = u.user_id
+         WHERE m.athlete_id = ?
+         ORDER BY sent_at ASC"
+    );
+
+    if ($messagesStmt) {
+        $messagesStmt->bind_param("i", $athleteId);
+        $messagesStmt->execute();
+        $messagesResult = $messagesStmt->get_result();
+
+        while ($msg = $messagesResult->fetch_assoc()) {
+            $messages[] = $msg;
         }
     }
 }
@@ -241,12 +260,37 @@ if ($athlete) {
             <div id="communication" class="page">
                 <h1>Communication</h1>
 
-                <div class="chat-box" id="chat"></div>
+                <?php if (!$athlete): ?>
+                    <div class="card">
+                        <p>No athlete profile found for your account.</p>
+                        <a href="athlete_create.php"><button>Create Athlete Profile</button></a>
+                    </div>
+                <?php else: ?>
+                    <div class="chat-box" id="chat">
+                        <?php if (empty($messages)): ?>
+                            <p>No messages yet.</p>
+                        <?php else: ?>
+                            <?php foreach ($messages as $msg): ?>
+                                <p>
+                                    <strong><?php echo htmlspecialchars($msg['sender_name']); ?></strong>
+                                    <small>(to <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $msg['recipient_role']))); ?>)</small>:
+                                    <?php echo htmlspecialchars($msg['content']); ?>
+                                    <br>
+                                    <small><?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($msg['sent_at']))); ?></small>
+                                </p>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
 
-                <div class="chat-input">
-                    <input type="text" id="messageInput" placeholder="Type a message...">
-                    <button onclick="sendMessage()">Send</button>
-                </div>
+                    <form class="chat-input" method="POST" action="message_create_handler.php">
+                        <select name="recipient_role" required>
+                            <option value="coach">Coach</option>
+                            <option value="athletic_trainer">Athletic Trainer</option>
+                        </select>
+                        <input type="text" name="content" id="messageInput" placeholder="Type a message..." required>
+                        <button type="submit">Send</button>
+                    </form>
+                <?php endif; ?>
             </div>
 
             <!-- Medical -->
