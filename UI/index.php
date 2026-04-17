@@ -138,6 +138,11 @@ if ($athlete) {
             <!-- Performance -->
             <div id="performance" class="page">
                 <h1>Performance Tracking</h1>
+                <?php if ($athlete): ?>
+                    <div class="card">
+                        <a href="performance_create.php"><button>Add Performance Record</button></a>
+                    </div>
+                <?php endif; ?>
 
                 <?php if (!$athlete): ?>
                     <div class="card">
