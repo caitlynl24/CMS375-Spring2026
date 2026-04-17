@@ -10,6 +10,18 @@ $role = $_SESSION['role'];
 
 require 'db.php';
 
+$activeTab = $_GET['tab'] ?? 'profile';
+$allowedTabs = ['profile', 'performance', 'schedule', 'communication', 'medical'];
+if (!in_array($activeTab, $allowedTabs, true)) {
+    $activeTab = 'profile';
+}
+
+$conversation = $_GET['conversation'] ?? 'coach';
+$allowedConversations = ['coach', 'athletic_trainer'];
+if (!in_array($conversation, $allowedConversations, true)) {
+    $conversation = 'coach';
+}
+
 $userId = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT athlete_id, full_name, age, sport, position FROM athletes WHERE user_id = ?");
 if ($stmt) {
@@ -74,12 +86,12 @@ if ($athlete) {
         "SELECT u.name AS sender_name, m.recipient_role, m.content, m.sent_at
          FROM messages m
          INNER JOIN users u ON m.sender_user_id = u.user_id
-         WHERE m.athlete_id = ?
+         WHERE m.athlete_id = ? AND m.recipient_role = ?
          ORDER BY sent_at ASC"
     );
 
     if ($messagesStmt) {
-        $messagesStmt->bind_param("i", $athleteId);
+        $messagesStmt->bind_param("is", $athleteId, $conversation);
         $messagesStmt->execute();
         $messagesResult = $messagesStmt->get_result();
 
@@ -111,11 +123,11 @@ if ($athlete) {
         </select>
 
         <ul>
-            <li onclick="showPage(event, 'profile')" class="active">Profile</li>
-            <li onclick="showPage(event, 'performance')">Performance</li>
-            <li onclick="showPage(event, 'schedule')">Schedule</li>
-            <li onclick="showPage(event, 'communication')">Communication</li>
-            <li onclick="showPage(event, 'medical')">Medical</li>
+            <li onclick="showPage(event, 'profile')" class="<?php echo ($activeTab === 'profile') ? 'active' : ''; ?>">Profile</li>
+            <li onclick="showPage(event, 'performance')" class="<?php echo ($activeTab === 'performance') ? 'active' : ''; ?>">Performance</li>
+            <li onclick="showPage(event, 'schedule')" class="<?php echo ($activeTab === 'schedule') ? 'active' : ''; ?>">Schedule</li>
+            <li onclick="showPage(event, 'communication')" class="<?php echo ($activeTab === 'communication') ? 'active' : ''; ?>">Communication</li>
+            <li onclick="showPage(event, 'medical')" class="<?php echo ($activeTab === 'medical') ? 'active' : ''; ?>">Medical</li>
         </ul>
     </div>
 
@@ -137,7 +149,7 @@ if ($athlete) {
         <div class="content">
 
             <!-- Profile -->
-            <div id="profile" class="page active">
+            <div id="profile" class="page <?php echo ($activeTab === 'profile') ? 'active' : ''; ?>">
                 <h1>Profile</h1>
 
                 <div class="card">
@@ -155,7 +167,7 @@ if ($athlete) {
             </div>
 
             <!-- Performance -->
-            <div id="performance" class="page">
+            <div id="performance" class="page <?php echo ($activeTab === 'performance') ? 'active' : ''; ?>">
                 <h1>Performance Tracking</h1>
                 <?php if ($athlete): ?>
                     <div class="card">
@@ -221,7 +233,7 @@ if ($athlete) {
             </div>
 
             <!-- Schedule -->
-            <div id="schedule" class="page">
+            <div id="schedule" class="page <?php echo ($activeTab === 'schedule') ? 'active' : ''; ?>">
                 <h1>Schedule</h1>
 
                 <?php if (!$athlete): ?>
@@ -257,7 +269,7 @@ if ($athlete) {
             </div>
 
             <!-- Communication -->
-            <div id="communication" class="page">
+            <div id="communication" class="page <?php echo ($activeTab === 'communication') ? 'active' : ''; ?>">
                 <h1>Communication</h1>
 
                 <?php if (!$athlete): ?>
@@ -266,6 +278,17 @@ if ($athlete) {
                         <a href="athlete_create.php"><button>Create Athlete Profile</button></a>
                     </div>
                 <?php else: ?>
+                    <div class="card">
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <a href="index.php?tab=communication&conversation=coach">
+                                <button <?php echo ($conversation === 'coach') ? 'style="opacity:1;"' : 'style="opacity:0.7;"'; ?>>Coach</button>
+                            </a>
+                            <a href="index.php?tab=communication&conversation=athletic_trainer">
+                                <button <?php echo ($conversation === 'athletic_trainer') ? 'style="opacity:1;"' : 'style="opacity:0.7;"'; ?>>Athletic Trainer</button>
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="chat-box" id="chat">
                         <?php if (empty($messages)): ?>
                             <p>No messages yet.</p>
@@ -273,7 +296,7 @@ if ($athlete) {
                             <?php foreach ($messages as $msg): ?>
                                 <p>
                                     <strong><?php echo htmlspecialchars($msg['sender_name']); ?></strong>
-                                    <small>(to <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $msg['recipient_role']))); ?>)</small>:
+                                    <small>(<?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $conversation))); ?>)</small>:
                                     <?php echo htmlspecialchars($msg['content']); ?>
                                     <br>
                                     <small><?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($msg['sent_at']))); ?></small>
@@ -283,10 +306,7 @@ if ($athlete) {
                     </div>
 
                     <form class="chat-input" method="POST" action="message_create_handler.php">
-                        <select name="recipient_role" required>
-                            <option value="coach">Coach</option>
-                            <option value="athletic_trainer">Athletic Trainer</option>
-                        </select>
+                        <input type="hidden" name="recipient_role" value="<?php echo htmlspecialchars($conversation); ?>">
                         <input type="text" name="content" id="messageInput" placeholder="Type a message..." required>
                         <button type="submit">Send</button>
                     </form>
@@ -294,7 +314,7 @@ if ($athlete) {
             </div>
 
             <!-- Medical -->
-            <div id="medical" class="page">
+            <div id="medical" class="page <?php echo ($activeTab === 'medical') ? 'active' : ''; ?>">
                 <h1>Medical Records</h1>
 
                 <div class="card">

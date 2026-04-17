@@ -15,7 +15,8 @@ $recipientRole = trim($_POST['recipient_role'] ?? '');
 $allowedRecipientRoles = ['coach', 'athletic_trainer'];
 
 if ($content === '' || !in_array($recipientRole, $allowedRecipientRoles, true)) {
-    header("Location: index.php");
+    $safeRole = in_array($recipientRole, $allowedRecipientRoles, true) ? $recipientRole : 'coach';
+    header("Location: index.php?tab=communication&conversation=" . urlencode($safeRole));
     exit();
 }
 
@@ -48,6 +49,6 @@ if (!$stmt) {
 $stmt->bind_param("iiss", $athleteId, $userId, $recipientRole, $content);
 $stmt->execute();
 
-header("Location: index.php");
+header("Location: index.php?tab=communication&conversation=" . urlencode($recipientRole));
 exit();
 
