@@ -13,12 +13,29 @@ if ($role !== 'coach') {
 }
 
 $activeTab = $_GET['tab'] ?? 'schedule';
-$allowedTabs = ['schedule', 'communication', 'medical'];
+$allowedTabs = ['profile', 'schedule', 'communication', 'medical'];
 if (!in_array($activeTab, $allowedTabs, true)) {
     $activeTab = 'schedule';
 }
 
 require 'db.php';
+
+$coachUserId = (int)$_SESSION['user_id'];
+$coachProfileRow = null;
+
+$coachProfileStmt = $conn->prepare(
+    "SELECT u.name, u.email, c.sport, c.title
+     FROM users u
+     LEFT JOIN coaches c ON c.user_id = u.user_id
+     WHERE u.user_id = ?
+     LIMIT 1"
+);
+
+if ($coachProfileStmt) {
+    $coachProfileStmt->bind_param("i", $coachUserId);
+    $coachProfileStmt->execute();
+    $coachProfileRow = $coachProfileStmt->get_result()->fetch_assoc();
+}
 
 $upcomingPractices = [];
 $upcomingGames = [];
@@ -78,7 +95,6 @@ if ($coachMedicalStmt) {
     }
 }
 
-$coachUserId = (int)$_SESSION['user_id'];
 $coachAthletes = [];
 $teamAnnouncementsCoach = [];
 $coachDirectMessages = [];
@@ -168,6 +184,7 @@ if ($selectedAthleteId > 0) {
         <h2>Rollins Athletics</h2>
 
         <ul>
+            <li onclick="showPage(event, 'profile')" class="<?php echo ($activeTab === 'profile') ? 'active' : ''; ?>">Profile</li>
             <li onclick="showPage(event, 'schedule')" class="<?php echo ($activeTab === 'schedule') ? 'active' : ''; ?>">Schedule</li>
             <li onclick="showPage(event, 'communication')" class="<?php echo ($activeTab === 'communication') ? 'active' : ''; ?>">Communication</li>
             <li onclick="showPage(event, 'medical')" class="<?php echo ($activeTab === 'medical') ? 'active' : ''; ?>">Medical</li>
@@ -190,6 +207,26 @@ if ($selectedAthleteId > 0) {
 
         <!-- Content -->
         <div class="content">
+
+            <!-- Profile -->
+            <div id="profile" class="page <?php echo ($activeTab === 'profile') ? 'active' : ''; ?>">
+                <h1>Profile</h1>
+
+                <div class="card">
+                    <?php if ($coachProfileRow): ?>
+                        <p><strong>Name:</strong> <?php echo htmlspecialchars($coachProfileRow['name']); ?></p>
+                        <p><strong>Email:</strong> <?php echo htmlspecialchars($coachProfileRow['email']); ?></p>
+                        <p><strong>Sport:</strong> <?php echo (isset($coachProfileRow['sport']) && trim((string)$coachProfileRow['sport']) !== '') ? htmlspecialchars($coachProfileRow['sport']) : 'Not set'; ?></p>
+                        <p><strong>Title:</strong> <?php echo (isset($coachProfileRow['title']) && trim((string)$coachProfileRow['title']) !== '') ? htmlspecialchars($coachProfileRow['title']) : 'Not set'; ?></p>
+                    <?php else: ?>
+                        <p>Unable to load profile.</p>
+                    <?php endif; ?>
+
+                    <div style="margin-top:15px;">
+                        <a href="coach_profile_edit.php"><button>Edit Profile</button></a>
+                    </div>
+                </div>
+            </div>
 
             <!-- Schedule -->
             <div id="schedule" class="page <?php echo ($activeTab === 'schedule') ? 'active' : ''; ?>">
