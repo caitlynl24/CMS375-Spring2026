@@ -19,7 +19,11 @@ if ($result->num_rows === 1) {
         $_SESSION['name'] = $user['name'];
         $_SESSION['role'] = $user['role'];
 
-        header("Location: index.php");
+        if ($user['role'] === 'coach') {
+            header("Location: coach_dashboard.php");
+        } else {
+            header("Location: index.php");
+        }
         exit();
     }
 }

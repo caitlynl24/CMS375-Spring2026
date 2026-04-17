@@ -11,3 +11,4 @@ CREATE TABLE IF NOT EXISTS users (
   CONSTRAINT uq_users_email UNIQUE (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+SELECT user_id, name, email, role FROM users;

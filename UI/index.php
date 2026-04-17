@@ -6,6 +6,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'coach') {
+    header("Location: coach_dashboard.php");
+    exit();
+}
+
 $role = $_SESSION['role'];
 
 require 'db.php';
@@ -155,11 +160,6 @@ if ($athlete) {
     <!-- Sidebar -->
     <div class="sidebar">
         <h2>Rollins Athletics</h2>
-
-        <select id="roleSelect" onchange="switchRole()">
-            <option value="athlete">Athlete</option>
-            <option value="coach">Coach</option>
-        </select>
 
         <ul>
             <li onclick="showPage(event, 'profile')" class="<?php echo ($activeTab === 'profile') ? 'active' : ''; ?>">Profile</li>
