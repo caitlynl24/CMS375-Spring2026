@@ -1,0 +1,18 @@
+-- AthleteHub - Coach profiles (one row per coach user; extends users with sport/title).
+-- Run inside athletics_db after users table exists.
+
+USE athletics_db;
+
+CREATE TABLE IF NOT EXISTS coaches (
+  coach_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  sport VARCHAR(50) NULL,
+  title VARCHAR(80) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_coaches_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT uq_coaches_user UNIQUE (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

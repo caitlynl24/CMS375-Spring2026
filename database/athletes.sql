@@ -1,0 +1,24 @@
+-- AthleteHub - Athletes table (run inside athletics_db)
+USE athletics_db;
+
+CREATE TABLE IF NOT EXISTS athletes (
+  athlete_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  full_name VARCHAR(100) NOT NULL,
+  age INT NULL,
+  sport VARCHAR(50) NULL,
+  position VARCHAR(50) NULL,
+  jersey_number INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_athletes_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT uq_athletes_user UNIQUE (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SHOW TABLES;
+
+SELECT * FROM users;
+SELECT * FROM athletes;

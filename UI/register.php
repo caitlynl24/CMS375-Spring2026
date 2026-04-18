@@ -17,6 +17,7 @@
         <select name="role">
             <option value="athlete">Athlete</option>
             <option value="coach">Coach</option>
+            <option value="athletic_trainer">Athletic Trainer</option>
         </select>
 
         <button type="submit">Register</button>
