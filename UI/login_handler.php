@@ -2,7 +2,7 @@
 session_start();
 require 'db.php';
 
-$email = $_POST['email'];
+$email    = $_POST['email'];
 $password = $_POST['password'];
 
 $stmt = $conn->prepare("SELECT user_id, name, password_hash, role FROM users WHERE email = ?");
@@ -16,12 +16,14 @@ if ($result->num_rows === 1) {
 
     if (password_verify($password, $user['password_hash'])) {
         $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['name'] = $user['name'];
-        $_SESSION['role'] = $user['role'];
+        $_SESSION['name']    = $user['name'];
+        $_SESSION['role']    = $user['role'];
 
         $role = strtolower(trim((string)$user['role']));
         if ($role === 'coach') {
             header("Location: coach_dashboard.php");
+        } elseif ($role === 'athletic_trainer') {
+            header("Location: at_dashboard.php");
         } else {
             header("Location: index.php");
         }
