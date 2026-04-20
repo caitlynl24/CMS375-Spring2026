@@ -1,4 +1,4 @@
--- AthleteHub - Practice schedule table (run inside athletics_db)
+-- Practice schedule table 
 USE athletics_db;
 
 CREATE TABLE IF NOT EXISTS practice_schedule (

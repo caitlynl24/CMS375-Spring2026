@@ -1,4 +1,4 @@
--- AthleteHub - Medical records table (run inside athletics_db)
+-- Medical records table 
 USE athletics_db;
 
 CREATE TABLE IF NOT EXISTS medical_records (
@@ -21,8 +21,7 @@ CREATE TABLE IF NOT EXISTS medical_records (
   INDEX idx_medical_records_athlete_reported (athlete_id, reported_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Mock data examples for one athlete profile.
--- Replace YOUR_ATHLETE_ID_HERE with the real athlete_id from your athletes table.
+-- Mock data examples for athlete profile.
 INSERT INTO medical_records (
   athlete_id,
   injury_title,

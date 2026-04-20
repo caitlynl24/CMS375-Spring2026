@@ -1,7 +1,4 @@
--- AthleteHub - Users table (auth)
---
--- Existing databases: extend role enum if the table already exists:
---   ALTER TABLE users MODIFY COLUMN role ENUM('athlete','coach','athletic_trainer') NOT NULL;
+-- Users table
 
 USE athletics_db;
 

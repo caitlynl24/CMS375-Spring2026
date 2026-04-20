@@ -1,5 +1,4 @@
--- AthleteHub - Athletic Trainers table
--- Run inside athletics_db after users table exists.
+-- Athletic Trainers table
 
 USE athletics_db;
 

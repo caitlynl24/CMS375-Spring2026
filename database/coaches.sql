@@ -1,5 +1,4 @@
--- AthleteHub - Coach profiles (one row per coach user; extends users with sport/title).
--- Run inside athletics_db after users table exists.
+-- Coach profiles
 
 USE athletics_db;
 

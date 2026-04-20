@@ -1,4 +1,4 @@
--- AthleteHub - Performance records table (run inside athletics_db)
+-- Performance records table 
 USE athletics_db;
 
 CREATE TABLE IF NOT EXISTS performance_records (
@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS performance_records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Mock data for one athlete profile.
--- Replace YOUR_ATHLETE_ID_HERE with the real athlete_id from your athletes table.
 INSERT INTO performance_records (athlete_id, category, metric_name, metric_value, record_date, notes) VALUES
 (2, 'fitness', 'beep_test_score', 11.40, '2026-04-01', 'Pre-season conditioning test'),
 (2, 'fitness', 'deac_test_score', 8.20, '2026-04-01', 'Agility benchmark'),

@@ -1,7 +1,7 @@
--- AthleteHub - Messages table (run inside athletics_db)
+-- Messages table
 USE athletics_db;
 
--- Clean reset for schema upgrade (safe here because existing data is test-only).
+-- Clean reset
 DROP TABLE IF EXISTS messages;
 
 CREATE TABLE messages (

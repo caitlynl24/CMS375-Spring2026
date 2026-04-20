@@ -1,4 +1,4 @@
--- AthleteHub - Athletes table (run inside athletics_db)
+-- Athletes table
 USE athletics_db;
 
 CREATE TABLE IF NOT EXISTS athletes (

@@ -1,4 +1,4 @@
--- AthleteHub - Game schedule table (run inside athletics_db)
+-- Game schedule table
 USE athletics_db;
 
 CREATE TABLE IF NOT EXISTS game_schedule (
@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS game_schedule (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Mock data examples for one athlete profile.
--- Replace YOUR_ATHLETE_ID_HERE with the real athlete_id from your athletes table.
 INSERT INTO game_schedule (athlete_id, opponent, game_datetime, location, notes) VALUES
 (2, 'Winter Park Wildcats', '2026-04-22 18:00:00', 'Rollins Field', 'Conference game'),
 (2, 'Stetson Hatters', '2026-04-29 19:30:00', 'Stetson Stadium', 'Away game - arrive 90 minutes early');
