@@ -26,7 +26,12 @@ if (!in_array($activeTab, $allowedTabs, true)) {
     $activeTab = 'profile';
 }
 
-$conversation = 'coach';
+$conversation = $_GET['conversation'] ?? 'coach';
+$allowedConversations = ['coach', 'athletic_trainer'];
+if (!in_array($conversation, $allowedConversations, true)) {
+    $conversation = 'coach';
+}
+
 $userId = $_SESSION['user_id'];
 
 $stmt = $conn->prepare("SELECT athlete_id, full_name, age, sport, position FROM athletes WHERE user_id = ?");
@@ -46,6 +51,7 @@ $messages                = [];
 $teamAnnouncements       = [];
 $medicalRecords          = [];
 $upcomingGames           = [];
+$todaysClasses           = [];
 
 if ($athlete) {
     $athleteId = (int)$athlete['athlete_id'];
@@ -80,7 +86,7 @@ if ($athlete) {
         }
     }
 
-    $peerRole = 'coach';
+    $peerRole = $conversation === 'coach' ? 'coach' : 'athletic_trainer';
     $communicationPeerUserId = null;
     $peerLookupStmt = $conn->prepare("SELECT user_id FROM users WHERE LOWER(TRIM(role)) = ? ORDER BY user_id ASC LIMIT 1");
     if ($peerLookupStmt) {
@@ -150,6 +156,22 @@ if ($athlete) {
         $gamesStmt->execute();
         $r = $gamesStmt->get_result();
         while ($row = $r->fetch_assoc()) { $upcomingGames[] = $row; }
+    }
+
+    $todayDow = (int)(new DateTime())->format('N');
+    $classTodayStmt = $conn->prepare(
+        "SELECT course_name, start_time, end_time, location, notes
+         FROM class_schedule
+         WHERE athlete_id = ? AND day_of_week = ?
+         ORDER BY start_time ASC"
+    );
+    if ($classTodayStmt) {
+        $classTodayStmt->bind_param("ii", $athleteId, $todayDow);
+        $classTodayStmt->execute();
+        $r = $classTodayStmt->get_result();
+        while ($row = $r->fetch_assoc()) {
+            $todaysClasses[] = $row;
+        }
     }
 }
 
@@ -344,6 +366,29 @@ $totalPerf      = count($fitnessRecords) + count($matchRecords);
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
+                    <div class="card">
+                        <div class="btn-row"><a href="class_schedule.php"><button>View Full Class Schedule</button></a></div>
+                        <h3>Today's Classes</h3>
+                        <?php if (empty($todaysClasses)): ?>
+                            <p>No classes scheduled for today.</p>
+                        <?php else: ?>
+                            <?php foreach ($todaysClasses as $class): ?>
+                                <p><strong><?php echo htmlspecialchars($class['course_name']); ?></strong></p>
+                                <p>
+                                    <?php echo htmlspecialchars(date('g:i A', strtotime('2000-01-01 ' . $class['start_time']))); ?>
+                                    –
+                                    <?php echo htmlspecialchars(date('g:i A', strtotime('2000-01-01 ' . $class['end_time']))); ?>
+                                </p>
+                                <?php if (!empty($class['location'])): ?>
+                                    <p><strong>Location:</strong> <?php echo htmlspecialchars($class['location']); ?></p>
+                                <?php endif; ?>
+                                <?php if (!empty($class['notes'])): ?>
+                                    <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($class['notes'])); ?></p>
+                                <?php endif; ?>
+                                <hr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
 
@@ -366,7 +411,15 @@ $totalPerf      = count($fitnessRecords) + count($matchRecords);
                         <?php endif; ?>
                     </div>
                     <div class="card card--coach-direct">
-                        <h3>Coach</h3>
+                        <div class="btn-row" style="margin-bottom:12px; flex-wrap:wrap;">
+                            <a href="index.php?tab=communication&conversation=coach">
+                                <button class="<?php echo ($conversation === 'coach') ? '' : 'btn--ghost'; ?>" <?php echo ($conversation === 'coach') ? 'style="opacity:1;"' : 'style="opacity:0.85;"'; ?>>Coach</button>
+                            </a>
+                            <a href="index.php?tab=communication&conversation=athletic_trainer">
+                                <button class="<?php echo ($conversation === 'athletic_trainer') ? '' : 'btn--ghost'; ?>" <?php echo ($conversation === 'athletic_trainer') ? 'style="opacity:1;"' : 'style="opacity:0.85;"'; ?>>Athletic Trainer</button>
+                            </a>
+                        </div>
+                        <h3><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $conversation))); ?></h3>
                         <?php if (isset($_GET['error'])): ?><p class="error"><?php echo htmlspecialchars($_GET['error']); ?></p><?php endif; ?>
                         <div class="chat-box" id="chat">
                             <?php if (empty($messages)): ?>

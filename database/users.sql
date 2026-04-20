@@ -15,3 +15,4 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SELECT user_id, name, email, role FROM users;
+

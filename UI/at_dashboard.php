@@ -75,6 +75,8 @@ $atAthletes = $allAthletes; // reuse
 $selectedAthleteId   = isset($_GET['athlete_id']) ? (int)$_GET['athlete_id'] : 0;
 $selectedAthleteUserId = null;
 $atDirectMessages    = [];
+$atCoachMessages     = [];
+$coachPeerUserId     = null;
 
 if ($selectedAthleteId > 0) {
     $selUserStmt = $conn->prepare("SELECT user_id FROM athletes WHERE athlete_id = ? LIMIT 1");
@@ -110,6 +112,38 @@ if ($selectedAthleteId > 0) {
                 while ($row = $dmResult->fetch_assoc()) {
                     $atDirectMessages[] = $row;
                 }
+            }
+        }
+    }
+}
+
+$coachLookupStmt = $conn->prepare("SELECT user_id FROM users WHERE LOWER(TRIM(role)) = ? ORDER BY user_id ASC LIMIT 1");
+if ($coachLookupStmt) {
+    $coachRoleParam = 'coach';
+    $coachLookupStmt->bind_param("s", $coachRoleParam);
+    $coachLookupStmt->execute();
+    $coachLookupRow = $coachLookupStmt->get_result()->fetch_assoc();
+    if ($coachLookupRow && !empty($coachLookupRow['user_id'])) {
+        $coachPeerUserId = (int)$coachLookupRow['user_id'];
+        $coachDmStmt = $conn->prepare(
+            "SELECT u.name AS sender_name, m.content, m.sent_at
+             FROM messages m
+             INNER JOIN users u ON m.sender_user_id = u.user_id
+             WHERE m.message_type = 'direct'
+               AND m.athlete_id IS NULL
+               AND (
+                   (m.sender_user_id = ? AND m.recipient_user_id = ?)
+                   OR
+                   (m.sender_user_id = ? AND m.recipient_user_id = ?)
+               )
+             ORDER BY m.sent_at ASC"
+        );
+        if ($coachDmStmt) {
+            $coachDmStmt->bind_param("iiii", $atUserId, $coachPeerUserId, $coachPeerUserId, $atUserId);
+            $coachDmStmt->execute();
+            $coachDmResult = $coachDmStmt->get_result();
+            while ($row = $coachDmResult->fetch_assoc()) {
+                $atCoachMessages[] = $row;
             }
         }
     }
@@ -395,6 +429,9 @@ if ($schedGameStmt) {
             <!-- ── COMMUNICATION ──────────────────────────────────────────── -->
             <div id="communication" class="page <?php echo ($activeTab === 'communication') ? 'active' : ''; ?>">
                 <h1>Communication</h1>
+                <?php if (isset($_GET['error'])): ?>
+                    <p class="error" style="margin-bottom:12px;"><?php echo htmlspecialchars($_GET['error']); ?></p>
+                <?php endif; ?>
 
                 <div class="card">
                     <h3>Direct messages</h3>
@@ -434,6 +471,34 @@ if ($schedGameStmt) {
                         <form class="chat-input" method="POST" action="at_message_handler.php">
                             <input type="hidden" name="athlete_id" value="<?php echo htmlspecialchars((string)$selectedAthleteId); ?>">
                             <input type="text" name="content" placeholder="Message this athlete..." required>
+                            <button type="submit">Send</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+
+                <div class="card" id="staff-coach-dm">
+                    <h3>Coach</h3>
+                    <p style="margin-top:0;color:#4b5563;font-size:13px;">Direct messages (not tied to a specific athlete).</p>
+                    <?php if ($coachPeerUserId === null): ?>
+                        <p>No coach account is available yet.</p>
+                    <?php else: ?>
+                        <div class="chat-box" id="at-coach-chat">
+                            <?php if (empty($atCoachMessages)): ?>
+                                <p>No messages yet.</p>
+                            <?php else: ?>
+                                <?php foreach ($atCoachMessages as $msg): ?>
+                                    <p>
+                                        <strong><?php echo htmlspecialchars($msg['sender_name']); ?></strong>:
+                                        <?php echo htmlspecialchars($msg['content']); ?>
+                                        <br>
+                                        <small><?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($msg['sent_at']))); ?></small>
+                                    </p>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                        <form class="chat-input" method="POST" action="at_message_handler.php">
+                            <input type="hidden" name="action" value="coach_direct">
+                            <input type="text" name="content" placeholder="Message coach..." required>
                             <button type="submit">Send</button>
                         </form>
                     <?php endif; ?>
@@ -527,24 +592,6 @@ if ($schedGameStmt) {
                             <p><strong>Athlete:</strong>    <?php echo htmlspecialchars($game['athlete_name']); ?></p>
                             <p><strong>Date/Time:</strong>  <?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($game['game_datetime']))); ?></p>
                             <p><strong>Location:</strong>   <?php echo htmlspecialchars($game['location']); ?></p>
-                            <?php if (!empty($game['notes'])): ?>
-                                <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($game['notes'])); ?></p>
-                            <?php endif; ?>
-                            <hr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-
-                <div class="card">
-                    <h3>Game Statistics (All Athletes)</h3>
-                    <?php if (empty($allGames)): ?>
-                        <p>No games on record.</p>
-                    <?php else: ?>
-                        <?php foreach ($allGames as $game): ?>
-                            <p><strong>Opponent:</strong>  <?php echo htmlspecialchars($game['opponent']); ?></p>
-                            <p><strong>Athlete:</strong>   <?php echo htmlspecialchars($game['athlete_name']); ?></p>
-                            <p><strong>Date/Time:</strong> <?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($game['game_datetime']))); ?></p>
-                            <p><strong>Location:</strong>  <?php echo htmlspecialchars($game['location']); ?></p>
                             <?php if (!empty($game['notes'])): ?>
                                 <p><strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($game['notes'])); ?></p>
                             <?php endif; ?>

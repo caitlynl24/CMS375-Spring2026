@@ -87,5 +87,47 @@ if ($action === 'direct') {
     exit();
 }
 
+if ($action === 'trainer_direct') {
+    $content = trim($_POST['content'] ?? '');
+    if ($content === '') {
+        header("Location: coach_dashboard.php?tab=communication&staff_dm=trainer#staff-trainer-dm");
+        exit();
+    }
+
+    $trainerStmt = $conn->prepare("SELECT user_id FROM users WHERE LOWER(TRIM(role)) = ? ORDER BY user_id ASC LIMIT 1");
+    if (!$trainerStmt) {
+        header("Location: coach_dashboard.php?tab=communication&staff_dm=trainer&error=" . urlencode("Unable to send message.") . "#staff-trainer-dm");
+        exit();
+    }
+
+    $trainerRole = 'athletic_trainer';
+    $trainerStmt->bind_param("s", $trainerRole);
+    $trainerStmt->execute();
+    $trainerRow = $trainerStmt->get_result()->fetch_assoc();
+
+    if (!$trainerRow || empty($trainerRow['user_id'])) {
+        header("Location: coach_dashboard.php?tab=communication&staff_dm=trainer&error=" . urlencode("No athletic trainer account is available.") . "#staff-trainer-dm");
+        exit();
+    }
+
+    $trainerUserId = (int)$trainerRow['user_id'];
+
+    $stmt = $conn->prepare(
+        "INSERT INTO messages (message_type, athlete_id, sender_user_id, recipient_user_id, recipient_group, content)
+         VALUES ('direct', NULL, ?, ?, NULL, ?)"
+    );
+
+    if (!$stmt) {
+        header("Location: coach_dashboard.php?tab=communication&staff_dm=trainer#staff-trainer-dm");
+        exit();
+    }
+
+    $stmt->bind_param("iis", $coachUserId, $trainerUserId, $content);
+    $stmt->execute();
+
+    header("Location: coach_dashboard.php?tab=communication&staff_dm=trainer#staff-trainer-dm");
+    exit();
+}
+
 header("Location: coach_dashboard.php?tab=communication");
 exit();

@@ -84,6 +84,8 @@ if ($coachMedicalStmt) {
 $coachAthletes       = [];
 $teamAnnouncementsCoach = [];
 $coachDirectMessages = [];
+$coachTrainerMessages = [];
+$trainerPeerUserId = null;
 $selectedAthleteId   = isset($_GET['athlete_id']) ? (int)$_GET['athlete_id'] : 0;
 $selectedAthleteUserId = null;
 
@@ -138,11 +140,42 @@ if ($selectedAthleteId > 0) {
     }
 }
 
+$trainerLookupStmt = $conn->prepare("SELECT user_id FROM users WHERE LOWER(TRIM(role)) = ? ORDER BY user_id ASC LIMIT 1");
+if ($trainerLookupStmt) {
+    $trainerRoleParam = 'athletic_trainer';
+    $trainerLookupStmt->bind_param("s", $trainerRoleParam);
+    $trainerLookupStmt->execute();
+    $trainerLookupRow = $trainerLookupStmt->get_result()->fetch_assoc();
+    if ($trainerLookupRow && !empty($trainerLookupRow['user_id'])) {
+        $trainerPeerUserId = (int)$trainerLookupRow['user_id'];
+        $trainerDmStmt = $conn->prepare(
+            "SELECT u.name AS sender_name, m.content, m.sent_at
+             FROM messages m
+             INNER JOIN users u ON m.sender_user_id = u.user_id
+             WHERE m.message_type = 'direct'
+               AND m.athlete_id IS NULL
+               AND (
+                   (m.sender_user_id = ? AND m.recipient_user_id = ?)
+                   OR
+                   (m.sender_user_id = ? AND m.recipient_user_id = ?)
+               )
+             ORDER BY m.sent_at ASC"
+        );
+        if ($trainerDmStmt) {
+            $trainerDmStmt->bind_param("iiii", $coachUserId, $trainerPeerUserId, $trainerPeerUserId, $coachUserId);
+            $trainerDmStmt->execute();
+            $r = $trainerDmStmt->get_result();
+            while ($row = $r->fetch_assoc()) {
+                $coachTrainerMessages[] = $row;
+            }
+        }
+    }
+}
+
 // ── Stat counts ───────────────────────────────────────────────────────────────
 $totalAthletes   = count($coachAthletes);
 $totalPractices  = count($upcomingPractices);
 $totalGames      = count($upcomingGames);
-$activeInjuries  = count(array_filter($coachMedicalRecords, fn($r) => $r['status'] === 'active'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -222,15 +255,6 @@ $activeInjuries  = count(array_filter($coachMedicalRecords, fn($r) => $r['status
                         <div class="stat-card__label">Upcoming Games</div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-card__icon stat-card__icon--red">
-                        <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    </div>
-                    <div class="stat-card__body">
-                        <div class="stat-card__value"><?php echo $activeInjuries; ?></div>
-                        <div class="stat-card__label">Active Injuries</div>
-                    </div>
-                </div>
             </div>
 
             <!-- ── PROFILE ────────────────────────────────────────────────── -->
@@ -296,6 +320,9 @@ $activeInjuries  = count(array_filter($coachMedicalRecords, fn($r) => $r['status
             <!-- ── COMMUNICATION ──────────────────────────────────────────── -->
             <div id="communication" class="page <?php echo ($activeTab === 'communication') ? 'active' : ''; ?>">
                 <h1>Communication</h1>
+                <?php if (isset($_GET['error'])): ?>
+                    <p class="error" style="margin-bottom:12px;"><?php echo htmlspecialchars($_GET['error']); ?></p>
+                <?php endif; ?>
 
                 <div class="card">
                     <h3>Team Announcements</h3>
@@ -346,6 +373,29 @@ $activeInjuries  = count(array_filter($coachMedicalRecords, fn($r) => $r['status
                             <input type="hidden" name="action" value="direct">
                             <input type="hidden" name="athlete_id" value="<?php echo htmlspecialchars((string)$selectedAthleteId); ?>">
                             <input type="text" name="content" placeholder="Message this athlete..." required>
+                            <button type="submit">Send</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+
+                <div class="card" id="staff-trainer-dm">
+                    <h3>Athletic Trainer</h3>
+                    <p style="margin-top:0;color:#4b5563;font-size:13px;">Direct messages (not tied to a specific athlete).</p>
+                    <?php if ($trainerPeerUserId === null): ?>
+                        <p>No athletic trainer account is available yet.</p>
+                    <?php else: ?>
+                        <div class="chat-box" id="coach-trainer-chat">
+                            <?php if (empty($coachTrainerMessages)): ?>
+                                <p>No messages yet.</p>
+                            <?php else: ?>
+                                <?php foreach ($coachTrainerMessages as $msg): ?>
+                                    <p><strong><?php echo htmlspecialchars($msg['sender_name']); ?></strong>: <?php echo htmlspecialchars($msg['content']); ?><br><small><?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($msg['sent_at']))); ?></small></p>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                        <form class="chat-input" method="POST" action="coach_message_handler.php">
+                            <input type="hidden" name="action" value="trainer_direct">
+                            <input type="text" name="content" placeholder="Message athletic trainer..." required>
                             <button type="submit">Send</button>
                         </form>
                     <?php endif; ?>
