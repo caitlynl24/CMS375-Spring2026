@@ -175,7 +175,7 @@ if ($athlete) {
     }
 }
 
-// ── Stat counts ───────────────────────────────────────────────────────────────
+// Stat counts
 $totalPractices = count($upcomingPractices);
 $totalGames     = count($upcomingGames);
 $totalMedical   = count($medicalRecords);

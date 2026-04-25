@@ -14,7 +14,7 @@ if ($role !== 'coach') {
 
 require 'db.php';
 
-// Determine selected week start (Monday). Falls back to current week.
+// Determine selected week start
 $weekStartInput = $_GET['week_start'] ?? '';
 $weekStartDate = DateTime::createFromFormat('Y-m-d', $weekStartInput);
 

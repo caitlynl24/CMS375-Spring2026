@@ -172,7 +172,7 @@ if ($trainerLookupStmt) {
     }
 }
 
-// ── Stat counts ───────────────────────────────────────────────────────────────
+// Stat counts
 $totalAthletes   = count($coachAthletes);
 $totalPractices  = count($upcomingPractices);
 $totalGames      = count($upcomingGames);

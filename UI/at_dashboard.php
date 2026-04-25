@@ -22,7 +22,7 @@ require 'db.php';
 
 $atUserId = (int)$_SESSION['user_id'];
 
-// ── Profile ──────────────────────────────────────────────────────────────────
+// Profile
 $atProfileRow = null;
 $atProfileStmt = $conn->prepare(
     "SELECT u.name, u.email, at2.specialty, at2.certification
@@ -37,7 +37,7 @@ if ($atProfileStmt) {
     $atProfileRow = $atProfileStmt->get_result()->fetch_assoc();
 }
 
-// ── All athletes (Athletes tab) ───────────────────────────────────────────────
+// All athletes
 $allAthletes = [];
 $allAthletesStmt = $conn->prepare(
     "SELECT a.athlete_id, a.full_name, a.age, a.sport, a.position, a.jersey_number
@@ -52,7 +52,7 @@ if ($allAthletesStmt) {
     }
 }
 
-// ── Medical records (Medical tab) ────────────────────────────────────────────
+// Medical records
 $medicalRecords = [];
 $medicalStmt = $conn->prepare(
     "SELECT m.medical_record_id, m.injury_title, m.injury_details, m.reported_date,
@@ -70,7 +70,7 @@ if ($medicalStmt) {
     }
 }
 
-// ── Communication ─────────────────────────────────────────────────────────────
+// Communication
 $atAthletes = $allAthletes; // reuse
 $selectedAthleteId   = isset($_GET['athlete_id']) ? (int)$_GET['athlete_id'] : 0;
 $selectedAthleteUserId = null;
@@ -149,7 +149,7 @@ if ($coachLookupStmt) {
     }
 }
 
-// ── Performance records (Performance tab) ────────────────────────────────────
+// Performance records
 $performanceByAthlete = [];
 $performanceStmt = $conn->prepare(
     "SELECT p.category, p.metric_name, p.metric_value, p.record_date, p.notes,
@@ -174,7 +174,7 @@ if ($performanceStmt) {
     }
 }
 
-// ── Game stats (Schedule tab) ─────────────────────────────────────────────────
+// Game stats
 $allGames = [];
 $allGamesStmt = $conn->prepare(
     "SELECT g.opponent, g.game_datetime, g.location, g.notes, a.full_name AS athlete_name
@@ -190,7 +190,7 @@ if ($allGamesStmt) {
     }
 }
 
-// ── Schedule (view-only) ──────────────────────────────────────────────────────
+// Schedule
 $upcomingPractices = [];
 $upcomingGames     = [];
 

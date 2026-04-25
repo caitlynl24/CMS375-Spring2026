@@ -6,7 +6,7 @@ $email = $_POST['email'];
 $password = $_POST['password'];
 $role = $_POST['role'];
 
-// Hash password securely
+// Hash password
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
 $stmt = $conn->prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
